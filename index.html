@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#060d1a"/>
+<title>AS7341 SpectroSensor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #060d1a;
+  --bg2:    #0b1628;
+  --bg3:    #0f1e35;
+  --border: #1a2e4a;
+  --text:   #ddeeff;
+  --muted:  #4a7090;
+  --card:   #0b1628;
+  --cyan:   #00e5ff;
+  --green:  #00ff88;
+  --orange: #ff8c00;
+  --red:    #ff3355;
+  --mono:   'Space Mono', monospace;
+  --sans:   'Outfit', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.hdr-logo{font-family:var(--mono);font-size:15px;color:var(--cyan);letter-spacing:3px;}
+.hdr-logo span{color:var(--green);}
+.hdr-conn{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.led{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:all .3s;}
+.led.on{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+.led.busy{background:var(--cyan);animation:blink .4s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.body{display:flex;flex:1;overflow:hidden;}
+.side{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;gap:0;flex-shrink:0;overflow-y:auto;}
+.side-sec{padding:14px 14px 10px;border-bottom:1px solid var(--border);}
+.sec-lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.btn{width:100%;padding:10px 12px;border:none;border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:6px;letter-spacing:.3px;}
+.btn:last-child{margin-bottom:0;}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+.btn:active:not(:disabled){transform:scale(.97);}
+.btn-usb{background:rgba(0,229,255,.1);color:var(--cyan);border:1px solid rgba(0,229,255,.3);}
+.btn-usb:hover:not(:disabled){background:rgba(0,229,255,.18);}
+.btn-bt{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.btn-bt:hover:not(:disabled){background:rgba(0,255,136,.18);}
+.btn-disc{background:rgba(255,51,85,.1);color:var(--red);border:1px solid rgba(255,51,85,.3);}
+.btn-start{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.4);}
+.btn-stop{background:rgba(255,51,85,.15);color:var(--red);border:1px solid rgba(255,51,85,.4);}
+.btn-save{background:rgba(255,140,0,.15);color:var(--orange);border:1px solid rgba(255,140,0,.4);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-size:12px;padding:8px;}
+.btn-ref{background:rgba(0,229,255,.1);color:var(--cyan);border:1px solid rgba(0,229,255,.3);}
+.btn-ref:hover:not(:disabled){background:rgba(0,229,255,.18);}
+.btn-ref-clear{background:transparent;color:var(--red);border:1px solid rgba(255,51,85,.3);font-size:10px;padding:7px;}
+.btn-download{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.btn-download:hover:not(:disabled){background:rgba(0,255,136,.18);}
+.timer{text-align:center;padding:12px 8px;background:var(--bg3);border-radius:8px;margin-bottom:8px;border:1px solid var(--border);}
+.timer-val{font-family:var(--mono);font-size:30px;color:var(--cyan);letter-spacing:2px;}
+.timer-sub{font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:2px;}
+.timer-countdown{font-family:var(--mono);font-size:11px;color:var(--orange);margin-top:5px;min-height:16px;letter-spacing:1px;}
+.rows-badge{text-align:center;font-family:var(--mono);font-size:11px;color:var(--green);margin-bottom:8px;}
+/* ─ AUTO-STOP SETTING ─ */
+.autostop-row{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin-bottom:8px;}
+.autostop-row label{font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap;letter-spacing:1px;}
+.autostop-row select{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;padding:3px 5px;outline:none;cursor:pointer;}
+.autostop-row select:focus{border-color:var(--cyan);}
+/* ─ REFERENCE / BLANK PANEL ─ */
+.ref-panel{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 10px;margin-bottom:8px;}
+.ref-panel-ttl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.ref-status{font-family:var(--mono);font-size:10px;font-weight:700;}
+.ref-status.set{color:var(--green);}
+.ref-status.unset{color:var(--muted);}
+.ref-detail{font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.6;}
+.status{display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);margin-bottom:8px;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.status-dot.measuring{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 1s infinite;}
+.status-dot.stopped{background:var(--red);}
+.status-dot.ready{background:var(--cyan);}
+.status-txt{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.log{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;height:90px;overflow-y:auto;font-family:var(--mono);font-size:9px;}
+.ll{color:var(--muted);margin-bottom:1px;word-break:break-all;}
+.ll.ok{color:var(--green);}
+.ll.err{color:var(--red);}
+.ll.info{color:var(--cyan);}
+.main{flex:1;overflow-y:auto;padding:16px;}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;gap:0;flex-wrap:wrap;}
+.tab{padding:9px 18px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px;}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.pane{display:none;}
+.pane.active{display:block;}
+.ch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+@media(max-width:900px){.ch-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){.ch-grid{grid-template-columns:repeat(2,1fr);}.side{display:none;}.mob-bar{display:flex!important;}}
+.ch-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;border-top:3px solid var(--border);transition:border-color .3s;}
+.ch-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:5px;}
+.ch-num{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);}
+.ch-bar-bg{height:3px;background:var(--bg3);border-radius:2px;margin-top:7px;}
+.ch-bar{height:3px;border-radius:2px;transition:width .5s ease;width:0;}
+.ratio-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+@media(max-width:700px){.ratio-grid{grid-template-columns:repeat(2,1fr);}}
+.ratio-card{background:var(--card);border:1px solid var(--border);border-radius:7px;padding:9px 11px;display:flex;justify-content:space-between;align-items:center;}
+.ratio-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.ratio-num{font-family:var(--mono);font-size:13px;color:var(--text);}
+canvas{width:100%;height:70px;display:block;}
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px;}
+th{background:var(--bg2);color:var(--muted);padding:7px 9px;text-align:right;position:sticky;top:0;white-space:nowrap;border-bottom:1px solid var(--border);}
+th:first-child{text-align:left;}
+td{padding:5px 9px;text-align:right;border-bottom:1px solid rgba(26,46,74,.5);}
+td:first-child{text-align:left;color:var(--muted);}
+tr:hover td{background:rgba(0,229,255,.03);}
+.card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:12px;}
+.card-ttl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;width:100%;max-width:400px;transform:translateY(16px);transition:transform .25s;}
+.overlay.show .modal{transform:none;}
+.modal-ttl{font-size:17px;font-weight:700;color:var(--cyan);margin-bottom:4px;}
+.modal-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:18px;}
+.modal input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:11px 13px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;margin-bottom:14px;transition:border-color .2s;}
+.modal input:focus{border-color:var(--cyan);}
+.modal-row{display:flex;gap:8px;}
+.modal-row .btn{flex:1;margin-bottom:0;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--green);color:#001a0d;font-family:var(--mono);font-size:12px;font-weight:700;padding:11px 22px;border-radius:30px;transition:transform .35s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--red);color:#fff;}
+.mob-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:8px 12px;gap:8px;z-index:100;}
+.mob-bar .btn{flex:1;margin-bottom:0;padding:12px 8px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">AS<span>7341</span> · SPECTROSENSOR</div>
+  <div class="hdr-conn">
+    <div class="led" id="led"></div>
+    <span id="connLbl">Not connected</span>
+  </div>
+</div>
+
+<div class="body">
+  <div class="side">
+
+    <div class="side-sec">
+      <div class="sec-lbl">Connect</div>
+      <button class="btn btn-usb" id="btnUsb" onclick="connectUSB()">🔌 USB Cable</button>
+      <button class="btn btn-bt"  id="btnBt"  onclick="connectBT()">📶 Bluetooth</button>
+      <button class="btn btn-disc" id="btnDisc" onclick="doDisconnect()" style="display:none;">✕ Disconnect</button>
+    </div>
+
+    <div class="side-sec">
+      <div class="sec-lbl">Measurement</div>
+      <div class="timer">
+        <div class="timer-val" id="timerVal">0.0s</div>
+        <div class="timer-sub">ELAPSED</div>
+        <!-- countdown shown here when auto-stop is active -->
+        <div class="timer-countdown" id="countdownLbl"></div>
+      </div>
+      <div class="rows-badge" id="rowsBadge">0 readings</div>
+
+      <!-- auto-stop dropdown -->
+      <div class="autostop-row">
+        <label>AUTO-STOP</label>
+        <select id="autoStopSel">
+          <option value="0">Manual only</option>
+          <option value="60">60 s</option>
+          <option value="120">120 s</option>
+          <option value="180">180 s</option>
+          <option value="300" selected>300 s</option>
+          <option value="600">600 s</option>
+          <option value="900">900 s</option>
+          <option value="1200">1200 s</option>
+          <option value="1800">1800 s</option>
+        </select>
+      </div>
+
+      <div class="status" id="statusBar">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-txt" id="statusTxt">Ready</span>
+      </div>
+      <button class="btn btn-start" id="btnStart" onclick="cmdStart()" disabled>▶ START</button>
+      <button class="btn btn-stop"  id="btnStop"  onclick="cmdStop()"  disabled>■ STOP</button>
+    </div>
+
+    <!-- ══ REFERENCE / BLANK ══
+         Workflow: 1) measure your blank/DI run as normal (Start/Stop above)
+         2) click "Set Current Data as Reference" to average those rows into
+            a baseline I0 per channel
+         3) start your next (sample) run — Transmittance & Absorbance vs
+            that baseline are computed live and included on Save -->
+    <div class="side-sec">
+      <div class="sec-lbl">Reference / Blank</div>
+      <div class="ref-panel">
+        <div class="ref-panel-ttl">
+          <span>STATUS</span>
+          <span class="ref-status unset" id="refStatusTxt">Not set</span>
+        </div>
+        <div class="ref-detail" id="refDetail">Measure a blank, then set it as reference.</div>
+      </div>
+      <button class="btn btn-ref" id="btnSetRef" onclick="setReferenceFromCurrentData()" disabled>📍 Set Current Data as Reference</button>
+      <button class="btn btn-ref-clear" id="btnClearRef" onclick="clearReference()" disabled>✕ Clear reference</button>
+    </div>
+
+    <div class="side-sec">
+      <div class="sec-lbl">Export</div>
+      <button class="btn btn-save" id="btnSave" onclick="openSave()" disabled>💾 Save to Sheets</button>
+      <button class="btn btn-download" id="btnDownload" onclick="downloadCSV()" disabled>⬇ Download CSV</button>
+      <button class="btn btn-ghost" onclick="clearAll()">🗑 Clear data</button>
+    </div>
+
+    <div class="side-sec" style="flex:1;">
+      <div class="sec-lbl">Log</div>
+      <div class="log" id="logBox"></div>
+    </div>
+
+  </div>
+
+  <div class="main">
+    <div class="tabs">
+      <button class="tab active" onclick="showPane('channels',this)">Channels</button>
+      <button class="tab" onclick="showPane('ratios',this)">Ratios</button>
+      <button class="tab" onclick="showPane('corrected',this)">Corrected</button>
+      <button class="tab" onclick="showPane('history',this)">History</button>
+      <button class="tab" onclick="showPane('guide',this)">Guide</button>
+    </div>
+
+    <div class="pane active" id="pane-channels">
+      <div class="card">
+        <div class="card-ttl">Spectral Channels — Raw Counts</div>
+        <div class="ch-grid" id="chGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">
+          <span>Clear Channel Trend</span>
+          <span style="color:var(--cyan);font-family:var(--mono);font-size:9px;" id="clearLive">—</span>
+        </div>
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-ratios">
+      <div class="card">
+        <div class="card-ttl">Ratio Parameters</div>
+        <div class="ratio-grid" id="ratioGrid"></div>
+      </div>
+    </div>
+
+    <!-- ══ NEW: CORRECTED (Transmittance / Absorbance vs Reference) ══ -->
+    <div class="pane" id="pane-corrected">
+      <div class="card">
+        <div class="card-ttl">
+          <span>Absorbance — A = −log₁₀(I / I₀)</span>
+          <span style="color:var(--cyan);font-family:var(--mono);font-size:9px;" id="refLive">Reference not set</span>
+        </div>
+        <div class="ch-grid" id="absGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Transmittance — %T = (I / I₀) × 100</div>
+        <div class="ratio-grid" id="transGrid"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-history">
+      <div class="card">
+        <div class="card-ttl">
+          <span>All Readings</span>
+          <span id="tblLbl" style="color:var(--green);font-size:10px;">0 rows</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Time</th>
+              <th>F1</th><th>F2</th><th>F3</th><th>F4</th><th>F5</th>
+              <th>F6</th><th>F7</th><th>F8</th><th>Clear</th><th>NIR</th>
+              <th>p1</th><th>p2</th><th>p3</th><th>p4</th><th>p5</th>
+              <th>p6</th><th>p7</th><th>p8</th><th>p9</th><th>p10</th>
+              <th>A_F6</th><th>A_F7</th><th>A_Clr</th>
+            </tr></thead>
+            <tbody id="tblBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-guide">
+      <div class="card">
+        <div class="card-ttl">How to use — Step by step</div>
+        <div style="font-size:13px;line-height:2.2;color:#8ab0cc;">
+          <div><span style="color:var(--cyan);font-weight:700;">Step 1 — Power on ESP32</span><br>
+          Plug the ESP32 into a USB power source or laptop.</div>
+          <div style="margin-top:12px;"><span style="color:var(--cyan);font-weight:700;">Step 2 — Connect</span><br>
+          <b style="color:var(--text);">On laptop (USB cable):</b> Click USB Cable → select AS7341_Sensor → Connect.<br>
+          <b style="color:var(--text);">On Android (Bluetooth):</b> Pair with AS7341_Sensor in phone settings first, then click Bluetooth here.</div>
+          <div style="margin-top:12px;"><span style="color:var(--cyan);font-weight:700;">Step 3 — Set AUTO-STOP timer</span><br>
+          Pick a duration from the <b style="color:var(--orange);">AUTO-STOP</b> dropdown (default 300 s). Select <b>Manual only</b> to stop yourself. The countdown shows in the timer box during measurement.</div>
+          <div style="margin-top:12px;"><span style="color:var(--cyan);font-weight:700;">Step 4 — Measure your blank/reference first</span><br>
+          Load the blank (e.g. DI water / DI+UHP) and click <b style="color:var(--green);">▶ START</b>, let it run, then <b style="color:var(--red);">■ STOP</b>. Keep <b style="color:var(--text);">gain, ATIME/ASTEP and the optical setup identical</b> to what you'll use for the sample — the correction is only valid if these match. Then click <b style="color:var(--cyan);">📍 Set Current Data as Reference</b> in the sidebar — this averages the blank run into a baseline I₀ per channel.</div>
+          <div style="margin-top:12px;"><span style="color:var(--cyan);font-weight:700;">Step 5 — Measure the sample</span><br>
+          Click <b style="color:var(--green);">▶ START</b> again — this clears the old data and streams the sample. Once a reference is set, every reading is automatically converted to <b style="color:var(--text);">Transmittance (%T)</b> and <b style="color:var(--text);">Absorbance (A)</b> relative to I₀ — view these live on the <b style="color:var(--cyan);">Corrected</b> tab. You can <b style="color:var(--text);">switch tabs or apps</b> while it runs; collection continues in the background.</div>
+          <div style="margin-top:12px;"><span style="color:var(--cyan);font-weight:700;">Step 6 — Save</span><br>
+          After stopping, the save dialog appears automatically. Enter a name and click Save to Sheets — raw counts, the p1–p10 ratios, and (if a reference is set) Abs_/Trans_ columns for every channel plus the reference Clear value used, are all written.<br>
+          <b style="color:var(--text);">Starting a new measurement always clears the previous data automatically — the stored reference is not affected, so it carries over into the next sample run until you clear it.</b></div>
+          <div style="margin-top:12px;padding:10px 14px;background:var(--bg3);border-radius:7px;border-left:3px solid var(--cyan);">
+            <b style="color:var(--cyan);">Browser:</b> Google Chrome only. Not Firefox / Safari / Edge.<br>
+            <b style="color:var(--cyan);">Sensor:</b> ATIME=29 · ASTEP=599 · GAIN=4X · DI blank Clear ≈ 3644
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mob-bar" id="mobBar">
+  <button class="btn btn-usb" style="font-size:11px;" onclick="connectUSB()">🔌 USB</button>
+  <button class="btn btn-bt"  style="font-size:11px;" onclick="connectBT()">📶 BT</button>
+  <button class="btn btn-start" id="mobStart" onclick="cmdStart()" disabled style="font-size:11px;">▶ START</button>
+  <button class="btn btn-stop"  id="mobStop"  onclick="cmdStop()"  disabled style="font-size:11px;">■ STOP</button>
+  <button class="btn btn-ref"  id="mobSetRef" onclick="setReferenceFromCurrentData()" disabled style="font-size:11px;">📍 REF</button>
+  <button class="btn btn-download" id="mobDownload" onclick="downloadCSV()" disabled style="font-size:11px;">⬇</button>
+  <button class="btn btn-save"  id="mobSave"  onclick="openSave()" disabled style="font-size:11px;">💾</button>
+</div>
+
+<div class="overlay" id="saveOverlay">
+  <div class="modal">
+    <div class="modal-ttl">💾 Save to Google Sheets</div>
+    <div class="modal-sub" id="modalSub">0 readings collected</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">CATEGORY</div>
+    <select id="expCategorySelect" onchange="onCategoryChange()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:11px 13px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;margin-bottom:8px;cursor:pointer;">
+      <option value="">— Select category —</option>
+      <option value="ONLY DI">ONLY DI</option>
+      <option value="DI + UHP">DI + UHP</option>
+      <option value="1U + UHP">1U + UHP</option>
+      <option value="5U + UHP">5U + UHP</option>
+      <option value="10U + UHP">10U + UHP</option>
+      <option value="15U + UHP">15U + UHP</option>
+      <option value="20U + UHP">20U + UHP</option>
+      <option value="25U + UHP">25U + UHP</option>
+      <option value="30U + UHP">30U + UHP</option>
+      <option value="D8">D8</option>
+      <option value="D7">D7</option>
+      <option value="D6">D6</option>
+      <option value="D5">D5</option>
+      <option value="D4">D4</option>
+      <option value="D3">D3</option>
+      <option value="D2">D2</option>
+      <option value="D1">D1</option>
+      <option value="__other__">Other (type below) ✏️</option>
+    </select>
+    <input id="expCategoryOther" type="text" placeholder="Type your custom category..." style="display:none;margin-bottom:4px;"/>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">SHEET / EXPERIMENT NAME</div>
+    <input id="expName" type="text" placeholder="e.g. Experiment_20260509_1430"/>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.8;">
+      Category is added as the first column in every row.<br>Saves to Google Drive → SpectroSensor_Data folder.
+    </div>
+    <div class="modal-row">
+      <button class="btn btn-ghost" onclick="closeSave()">Cancel</button>
+      <button class="btn btn-save" id="doSaveBtn" onclick="doSave()">Save to Sheets</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw80kprnY8EjpTrLXCk6dXweM8gs1gkcyCWUgRLbNuNydFN4KNuQo0pTug8X-Z4JGPkdg/exec';
+const BAUD       = 115200;
+const FULL_SCALE = 18000;
+const BT_SERVICE = '0000ffe0-0000-1000-8000-00805f9b34fb';
+const BT_CHAR    = '0000ffe1-0000-1000-8000-00805f9b34fb';
+
+const CHS = [
+  {id:'F1', lbl:'F1 — 415nm', col:'#a78bfa'},
+  {id:'F2', lbl:'F2 — 445nm', col:'#60a5fa'},
+  {id:'F3', lbl:'F3 — 480nm', col:'#22d3ee'},
+  {id:'F4', lbl:'F4 — 515nm', col:'#4ade80'},
+  {id:'F5', lbl:'F5 — 555nm', col:'#facc15'},
+  {id:'F6', lbl:'F6 — 590nm', col:'#fb923c'},
+  {id:'F7', lbl:'F7 — 630nm', col:'#f87171'},
+  {id:'F8', lbl:'F8 — 680nm', col:'#ef4444'},
+  {id:'CLR',lbl:'Clear',      col:'#00e5ff'},
+  {id:'NIR',lbl:'NIR',        col:'#6b7280'},
+];
+const RATIOS = [
+  ['p1','F6/F4'],['p2','F6/F2'],['p3','F7/F5'],['p4','F6/F5'],['p5','F8/F6'],
+  ['p6','F7/F6'],['p7','F6/CLR'],['p8','F7/CLR'],['p9','(F6+F7)/CLR'],['p10','F2/CLR'],
+];
+
+// ════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════
+let connMode  = null;
+let isConn    = false;
+let isMeasure = false;
+let rows      = [];
+let trend     = [];
+let rxBuf     = '';
+let usbPort = null, usbWriter = null, usbReader = null;
+let btDevice = null, btChar = null;
+
+// ── Reference / blank baseline ──
+// Set by setReferenceFromCurrentData(): the mean raw count per channel
+// across whatever is currently in `rows` (your blank/DI run). Persists
+// across new sample runs (cmdStart() clears `rows`, not this) until
+// clearReference() is called or the page reloads.
+let referenceBaseline = null; // {F1..NIR}: averaged counts, or null if unset
+
+// ── Timer state ──
+// Web Worker timer — runs even when tab is in background.
+// Chrome throttles normal setInterval to ~1/sec (or slower) when a tab
+// is hidden. A Worker thread is NOT throttled, so the countdown stays
+// accurate and auto-stop fires on time even if you switch tabs.
+let workerTimer  = null;
+let elapsed      = 0;
+let autoStopSec  = 0;
+let autoStopFired = false;   // guard: ensure stop fires only once
+
+// ════════════════════════════════════════════════════
+// BUILD UI
+// ════════════════════════════════════════════════════
+function buildUI() {
+  document.getElementById('chGrid').innerHTML = CHS.map(c=>`
+    <div class="ch-card" id="cc_${c.id}" style="border-top-color:${c.col}">
+      <div class="ch-lbl">${c.lbl}</div>
+      <div class="ch-num" id="cn_${c.id}">—</div>
+      <div class="ch-bar-bg"><div class="ch-bar" id="cb_${c.id}" style="background:${c.col}"></div></div>
+    </div>`).join('');
+
+  document.getElementById('ratioGrid').innerHTML = RATIOS.map(([id,lbl])=>`
+    <div class="ratio-card">
+      <span class="ratio-lbl">${id} ${lbl}</span>
+      <span class="ratio-num" id="${id}">—</span>
+    </div>`).join('');
+
+  // Corrected tab: one Absorbance card + one %Transmittance card per channel
+  document.getElementById('absGrid').innerHTML = CHS.map(c=>`
+    <div class="ch-card" id="ac_${c.id}" style="border-top-color:${c.col}">
+      <div class="ch-lbl">A · ${c.lbl}</div>
+      <div class="ch-num" id="an_${c.id}">—</div>
+    </div>`).join('');
+
+  document.getElementById('transGrid').innerHTML = CHS.map(c=>`
+    <div class="ratio-card">
+      <span class="ratio-lbl">%T ${c.lbl}</span>
+      <span class="ratio-num" id="tn_${c.id}">—</span>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════
+// WEB WORKER TIMER
+// Built inline from a Blob — no extra file needed.
+// Posts a 'tick' message every 100 ms regardless of tab visibility.
+// ════════════════════════════════════════════════════
+function startWorkerTimer() {
+  stopWorkerTimer();
+  elapsed       = 0;
+  autoStopFired = false;
+  autoStopSec   = parseInt(document.getElementById('autoStopSel').value, 10);
+
+  const workerCode = `
+    let iv = null;
+    self.onmessage = function(e) {
+      if (e.data === 'start') {
+        clearInterval(iv);
+        iv = setInterval(function(){ self.postMessage('tick'); }, 100);
+      } else if (e.data === 'stop') {
+        clearInterval(iv);
+      }
+    };
+  `;
+  const blob = new Blob([workerCode], {type:'application/javascript'});
+  workerTimer = new Worker(URL.createObjectURL(blob));
+
+  workerTimer.onmessage = function() {
+    // Each message = 100 ms tick
+    elapsed = Math.round((elapsed + 0.1) * 10) / 10;
+
+    // Update elapsed display
+    document.getElementById('timerVal').textContent = elapsed.toFixed(1) + 's';
+
+    // Countdown display + auto-stop logic
+    if (autoStopSec > 0) {
+      const remaining = Math.max(0, autoStopSec - elapsed);
+      document.getElementById('countdownLbl').textContent =
+        'stops in ' + remaining.toFixed(0) + 's';
+      if (elapsed >= autoStopSec && !autoStopFired) {
+        autoStopFired = true;
+        document.getElementById('countdownLbl').textContent = '';
+        cmdStop();   // auto-stop fires here
+      }
+    }
+  };
+
+  workerTimer.postMessage('start');
+  if (autoStopSec > 0) log('Auto-stop in ' + autoStopSec + 's', 'info');
+}
+
+function stopWorkerTimer() {
+  if (workerTimer) {
+    workerTimer.postMessage('stop');
+    workerTimer.terminate();
+    workerTimer = null;
+  }
+  document.getElementById('countdownLbl').textContent = '';
+}
+
+// ════════════════════════════════════════════════════
+// USB CONNECTION
+// ════════════════════════════════════════════════════
+async function connectUSB() {
+  if (!('serial' in navigator)) {
+    toast('Use Google Chrome for USB connection', true);
+    log('Chrome required for USB Serial', 'err'); return;
+  }
+  try {
+    usbPort   = await navigator.serial.requestPort();
+    await usbPort.open({ baudRate: BAUD });
+    connMode  = 'usb'; isConn = true;
+    usbWriter = usbPort.writable.getWriter();
+    onConnected('USB');
+    usbReadLoop();
+  } catch(e) {
+    if (e.name !== 'NotFoundError') log('USB error: '+e.message, 'err');
+  }
+}
+
+async function usbReadLoop() {
+  const dec = new TextDecoderStream();
+  usbPort.readable.pipeTo(dec.writable);
+  usbReader = dec.readable.getReader();
+  try {
+    while (true) {
+      const {value, done} = await usbReader.read();
+      if (done) break;
+      rxBuf += value;
+      const lines = rxBuf.split('\n');
+      rxBuf = lines.pop();
+      lines.forEach(l => processLine(l.trim()));
+    }
+  } catch(e) { log('USB read error: '+e.message,'err'); onDisconnected(); }
+}
+
+// ════════════════════════════════════════════════════
+// BLUETOOTH CONNECTION
+// ════════════════════════════════════════════════════
+async function connectBT() {
+  if (!navigator.bluetooth) {
+    toast('Bluetooth needs Chrome on Android', true);
+    log('Web Bluetooth requires Chrome on Android', 'err'); return;
+  }
+  try {
+    log('Scanning for AS7341_Sensor...', 'info');
+    setBusy(true);
+    btDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'AS7341_Sensor' }],
+      optionalServices: [BT_SERVICE]
+    });
+    btDevice.addEventListener('gattserverdisconnected', onDisconnected);
+    const server  = await btDevice.gatt.connect();
+    const service = await server.getPrimaryService(BT_SERVICE);
+    btChar        = await service.getCharacteristic(BT_CHAR);
+    await btChar.startNotifications();
+    btChar.addEventListener('characteristicvaluechanged', e => {
+      const chunk = new TextDecoder().decode(e.target.value);
+      rxBuf += chunk;
+      const lines = rxBuf.split('\n');
+      rxBuf = lines.pop();
+      lines.forEach(l => processLine(l.trim()));
+    });
+    connMode = 'bt'; isConn = true;
+    setBusy(false);
+    onConnected('Bluetooth');
+  } catch(e) {
+    setBusy(false);
+    if (e.name !== 'NotFoundError') log('BT error: '+e.message,'err');
+  }
+}
+
+// ════════════════════════════════════════════════════
+// DISCONNECT
+// ════════════════════════════════════════════════════
+async function doDisconnect() {
+  isMeasure = false; stopWorkerTimer();
+  try {
+    if (usbReader) { await usbReader.cancel(); usbReader = null; }
+    if (usbWriter) { usbWriter.releaseLock(); usbWriter = null; }
+    if (usbPort)   { await usbPort.close(); usbPort = null; }
+    if (btDevice && btDevice.gatt.connected) btDevice.gatt.disconnect();
+  } catch(e) {}
+  onDisconnected();
+}
+
+function onConnected(mode) {
+  document.getElementById('led').className = 'led on';
+  document.getElementById('connLbl').textContent = 'Connected · ' + mode;
+  document.getElementById('btnUsb').style.display  = 'none';
+  document.getElementById('btnBt').style.display   = 'none';
+  document.getElementById('btnDisc').style.display = '';
+  setBtn('btnStart', false); setBtn('mobStart', false);
+  log('Connected via ' + mode, 'ok');
+  setStatus('ready', 'Connected · ready');
+}
+
+function onDisconnected() {
+  isConn = false; connMode = null;
+  document.getElementById('led').className = 'led';
+  document.getElementById('connLbl').textContent = 'Not connected';
+  document.getElementById('btnUsb').style.display  = '';
+  document.getElementById('btnBt').style.display   = '';
+  document.getElementById('btnDisc').style.display = 'none';
+  setBtn('btnStart', true); setBtn('mobStart', true);
+  setBtn('btnStop',  true); setBtn('mobStop',  true);
+  setStatus('', 'Disconnected');
+  log('Disconnected', 'err');
+}
+
+// ════════════════════════════════════════════════════
+// SEND COMMAND
+// ════════════════════════════════════════════════════
+async function send(c) {
+  const enc = new TextEncoder().encode(c);
+  try {
+    if (connMode === 'usb' && usbWriter) await usbWriter.write(enc);
+    if (connMode === 'bt'  && btChar)    await btChar.writeValue(enc);
+  } catch(e) { log('Send error: '+e.message, 'err'); }
+}
+
+// ════════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════════
+function cmdStart() {
+  // Always wipe previous session data before a new measurement.
+  // This means row numbers always start from 1 and old data never mixes
+  // with new data. No manual clearing needed between experiments.
+  // NOTE: this does NOT touch referenceBaseline — a reference you've set
+  // stays active across new (sample) runs until you clear it.
+  clearSessionData();
+
+  send('M');
+  setBtn('btnStart', true);  setBtn('mobStart', true);
+  setBtn('btnStop',  false); setBtn('mobStop',  false);
+
+  // Start the background-safe worker timer.
+  // It reads the auto-stop dropdown and fires cmdStop() automatically.
+  startWorkerTimer();
+}
+
+// ════════════════════════════════════════════════════
+// STOP
+// ════════════════════════════════════════════════════
+function cmdStop() {
+  // Guard: if already stopped (e.g. auto-stop already fired), do nothing
+  if (!isMeasure && !workerTimer) return;
+
+  send('S');
+  stopWorkerTimer();
+  setBtn('btnStop',  true);  setBtn('mobStop',  true);
+  setBtn('btnStart', false); setBtn('mobStart', false);
+}
+
+// ════════════════════════════════════════════════════
+// REFERENCE / BLANK — capture baseline & apply correction
+// ════════════════════════════════════════════════════
+
+// Averages every channel across whatever is currently in `rows` and
+// stores it as the new baseline I0. Call this right after measuring
+// your blank (DI / UHP-only / dark) run, before starting the sample run.
+function setReferenceFromCurrentData() {
+  if (!rows.length) { toast('No data loaded — measure your blank first', true); return; }
+
+  // Guard against accidentally overwriting a reference you're already
+  // using — but still make it a one-click swap when you DO mean to
+  // switch to a different blank/sample as the new baseline.
+  if (referenceBaseline) {
+    const ok = confirm('A reference is already set (I₀ Clear=' + referenceBaseline.CLR.toFixed(0) +
+      '). Replace it with the current ' + rows.length + ' readings?');
+    if (!ok) return;
+  }
+
+  const chIds = CHS.map(c => c.id);
+  const sums  = {}; chIds.forEach(id => sums[id] = 0);
+  rows.forEach(r => chIds.forEach(id => sums[id] += (r[id] || 0)));
+
+  referenceBaseline = {};
+  chIds.forEach(id => referenceBaseline[id] = sums[id] / rows.length);
+
+  const statusEl = document.getElementById('refStatusTxt');
+  statusEl.textContent = 'Set ✓';
+  statusEl.className   = 'ref-status set';
+  document.getElementById('refDetail').textContent =
+    'I₀ Clear=' + referenceBaseline.CLR.toFixed(0) + '  ·  averaged from ' + rows.length + ' readings';
+  setBtn('btnClearRef', false);
+  document.getElementById('refLive').textContent = 'I₀ Clear=' + referenceBaseline.CLR.toFixed(0);
+
+  log('Reference set from ' + rows.length + ' readings (I₀ Clear=' + referenceBaseline.CLR.toFixed(0) + ')', 'ok');
+  toast('✅ Reference captured');
+}
+
+function clearReference() {
+  referenceBaseline = null;
+  const statusEl = document.getElementById('refStatusTxt');
+  statusEl.textContent = 'Not set';
+  statusEl.className   = 'ref-status unset';
+  document.getElementById('refDetail').textContent = 'Measure a blank, then set it as reference.';
+  setBtn('btnClearRef', true);
+  document.getElementById('refLive').textContent = 'Reference not set';
+  updateCorrected(null);
+  log('Reference cleared — Corrected tab now shows raw counts only', 'info');
+}
+
+// Beer–Lambert style correction relative to referenceBaseline.
+// T (transmittance) = I / I0.  A (absorbance) = -log10(T).
+// Returns null if no reference is set yet.
+function applyReference(r) {
+  if (!referenceBaseline) return null;
+  const out = {};
+  CHS.forEach(c => {
+    const I  = r[c.id] || 0;
+    const I0 = referenceBaseline[c.id] || 1e-6;   // guard divide-by-zero
+    const T  = I / I0;
+    const A  = T > 0 ? -Math.log10(T) : 99;       // clamp when T<=0 (saturated/no signal)
+    out['T_' + c.id] = T;
+    out['A_' + c.id] = A;
+  });
+  return out;
+}
+
+// ════════════════════════════════════════════════════
+// PROCESS INCOMING LINE
+// ════════════════════════════════════════════════════
+function processLine(line) {
+  if (!line) return;
+  log(line.substring(0, 70));
+
+  if (line.startsWith('STATUS:')) {
+    const s = line.replace('STATUS:', '');
+    if (s === 'STARTED') { setStatus('measuring', 'Measuring...'); }
+    if (s === 'STOPPED') { setStatus('stopped', 'Stopped'); if (rows.length) openSave(); }
+    if (s === 'READY')   { setStatus('ready', 'Sensor ready'); log('Sensor ready', 'ok'); }
+    return;
+  }
+  if (!line.startsWith('DATA,')) return;
+
+  const p = line.split(',');
+  if (p.length < 21) return;
+
+  const r = {
+    time: p[1],
+    F1:+p[2],  F2:+p[3],  F3:+p[4],  F4:+p[5],  F5:+p[6],
+    F6:+p[7],  F7:+p[8],  F8:+p[9],  CLR:+p[10], NIR:+p[11],
+    p1:+p[12], p2:+p[13], p3:+p[14], p4:+p[15],  p5:+p[16],
+    p6:+p[17], p7:+p[18], p8:+p[19], p9:+p[20],  p10:+p[21],
+  };
+
+  // If a reference/blank baseline is active, attach Transmittance &
+  // Absorbance for every channel to this same row object, so they flow
+  // automatically into the table, the Corrected tab, and Save-to-Sheets.
+  const corrected = applyReference(r);
+  if (corrected) Object.assign(r, corrected);
+
+  rows.push(r);
+  updateLive(r);
+  updateCorrected(r);
+  addRow(r);
+  trend.push(r.CLR); if (trend.length > 40) trend.shift();
+  drawChart();
+
+  const n = rows.length;
+  document.getElementById('rowsBadge').textContent = n + ' readings';
+  document.getElementById('tblLbl').textContent    = n + ' rows';
+  setBtn('btnSave', false); setBtn('mobSave', false);
+  setBtn('btnDownload', false); setBtn('mobDownload', false);
+  setBtn('btnSetRef', false); setBtn('mobSetRef', false);
+}
+
+// ════════════════════════════════════════════════════
+// LIVE UI UPDATE
+// ════════════════════════════════════════════════════
+function updateLive(r) {
+  CHS.forEach(c => {
+    const v  = r[c.id] || 0;
+    const ne = document.getElementById('cn_'+c.id);
+    const be = document.getElementById('cb_'+c.id);
+    if (ne) ne.textContent = v.toLocaleString();
+    if (be) be.style.width = Math.min(100, (v / FULL_SCALE) * 100) + '%';
+  });
+  document.getElementById('clearLive').textContent = 'CLR = ' + r.CLR.toLocaleString();
+  RATIOS.forEach(([id]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (r[id] || 0).toFixed(3);
+  });
+}
+
+// Updates the Corrected tab (Absorbance + %Transmittance per channel).
+// Pass null to reset the display back to placeholders (e.g. on clear).
+function updateCorrected(r) {
+  CHS.forEach(c => {
+    const ae = document.getElementById('an_'+c.id);
+    const te = document.getElementById('tn_'+c.id);
+    const hasVal = r && r['A_'+c.id] !== undefined;
+    if (ae) ae.textContent = hasVal ? r['A_'+c.id].toFixed(4) : '—';
+    if (te) te.textContent = hasVal ? (r['T_'+c.id]*100).toFixed(1)+'%' : '—';
+  });
+}
+
+// ════════════════════════════════════════════════════
+// TABLE ROW
+// ════════════════════════════════════════════════════
+function addRow(r) {
+  const tb = document.getElementById('tblBody');
+  const tr = document.createElement('tr');
+  const aF6  = (r.A_F6  !== undefined) ? r.A_F6.toFixed(4)  : '—';
+  const aF7  = (r.A_F7  !== undefined) ? r.A_F7.toFixed(4)  : '—';
+  const aCLR = (r.A_CLR !== undefined) ? r.A_CLR.toFixed(4) : '—';
+  tr.innerHTML = `<td>${r.time}</td>
+    <td>${r.F1}</td><td>${r.F2}</td><td>${r.F3}</td><td>${r.F4}</td><td>${r.F5}</td>
+    <td>${r.F6}</td><td>${r.F7}</td><td>${r.F8}</td><td>${r.CLR}</td><td>${r.NIR}</td>
+    <td>${r.p1.toFixed(3)}</td><td>${r.p2.toFixed(3)}</td><td>${r.p3.toFixed(3)}</td>
+    <td>${r.p4.toFixed(3)}</td><td>${r.p5.toFixed(3)}</td><td>${r.p6.toFixed(3)}</td>
+    <td>${r.p7.toFixed(3)}</td><td>${r.p8.toFixed(3)}</td><td>${r.p9.toFixed(3)}</td>
+    <td>${r.p10.toFixed(3)}</td>
+    <td>${aF6}</td><td>${aF7}</td><td>${aCLR}</td>`;
+  tb.appendChild(tr);
+}
+
+// ════════════════════════════════════════════════════
+// CHART
+// ════════════════════════════════════════════════════
+function drawChart() {
+  const cv = document.getElementById('trendChart');
+  if (!cv.offsetWidth) return;
+  const ctx = cv.getContext('2d');
+  cv.width  = cv.offsetWidth; cv.height = 70;
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  if (trend.length < 2) return;
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2;
+  ctx.shadowBlur  = 8; ctx.shadowColor = '#00e5ff';
+  ctx.beginPath();
+  trend.forEach((v, i) => {
+    const x = (i / (trend.length - 1)) * W;
+    const y = H - ((v / FULL_SCALE) * (H - 10)) - 5;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle  = 'rgba(0,229,255,0.06)';
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+}
+
+// ════════════════════════════════════════════════════
+// SAVE TO GOOGLE SHEETS
+// ════════════════════════════════════════════════════
+function openSave() {
+  if (!rows.length) { toast('No data to save', true); return; }
+  const d     = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('expName').value         = 'Experiment_' + stamp;
+  document.getElementById('expCategorySelect').value = '';
+  document.getElementById('expCategoryOther').style.display = 'none';
+  document.getElementById('expCategoryOther').value = '';
+  document.getElementById('modalSub').textContent  = rows.length + ' readings ready to save';
+  document.getElementById('saveOverlay').classList.add('show');
+  // Auto-focus the category field so user can type immediately
+  setTimeout(() => document.getElementById('expCategorySelect').focus(), 100);
+}
+function closeSave() { document.getElementById('saveOverlay').classList.remove('show'); }
+
+async function doSave() {
+  const name     = document.getElementById('expName').value.trim();
+  const selVal  = document.getElementById('expCategorySelect').value;
+  const category = (selVal === '__other__')
+    ? (document.getElementById('expCategoryOther').value.trim() || 'Other')
+    : (selVal || 'Uncategorized');
+  if (!name) { alert('Please enter a sheet name'); return; }
+  const btn  = document.getElementById('doSaveBtn');
+  btn.textContent = '⏳ Saving...'; btn.disabled = true;
+
+  const chIds = CHS.map(c => c.id);
+
+  // Category is the FIRST column, then all sensor columns follow, then
+  // (if a reference is active) an Abs_/Trans_ column per channel, and
+  // finally the reference Clear value used — for traceability.
+  const headers = [
+    'Time(s)',
+    'Category',
+    'F1_415nm','F2_445nm','F3_480nm','F4_515nm','F5_555nm',
+    'F6_590nm','F7_630nm','F8_680nm','Clear','NIR',
+    'p1(F6/F4)','p2(F6/F2)','p3(F7/F5)','p4(F6/F5)','p5(F8/F6)',
+    'p6(F7/F6)','p7(F6/CLR)','p8(F7/CLR)','p9((F6+F7)/CLR)','p10(F2/CLR)',
+    ...chIds.map(id => 'Abs_' + id),
+    ...chIds.map(id => 'Trans_' + id),
+    'Ref_Clear_I0'
+  ];
+
+  const refClearUsed = referenceBaseline ? referenceBaseline.CLR.toFixed(0) : '';
+
+  // Each data row starts with the category value
+  const data = rows.map(r => {
+    const base = [
+      r.time, category,
+      r.F1, r.F2, r.F3, r.F4, r.F5,
+      r.F6, r.F7, r.F8, r.CLR, r.NIR,
+      r.p1, r.p2, r.p3, r.p4, r.p5,
+      r.p6, r.p7, r.p8, r.p9, r.p10
+    ];
+    const abs   = chIds.map(id => (r['A_'+id] !== undefined) ? r['A_'+id].toFixed(4) : '');
+    const trans = chIds.map(id => (r['T_'+id] !== undefined) ? r['T_'+id].toFixed(4) : '');
+    return base.concat(abs, trans, [refClearUsed]);
+  });
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method:  'POST',
+      mode:    'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body:    JSON.stringify({ sheetName: name, headers, rows: data })
+    });
+    await new Promise(res => setTimeout(res, 2000));
+    closeSave();
+    toast('✅ Saved: ' + name);
+    log('Saved [' + category + '] → ' + name, 'ok');
+  } catch(e) {
+    toast('Save failed — check internet', true);
+    log('Save error: ' + e.message, 'err');
+  } finally {
+    btn.textContent = 'Save to Sheets'; btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════
+// DOWNLOAD CSV LOCALLY
+// Same columns as the Sheets export (minus Category, which only makes
+// sense for the Sheets workflow) — saves straight to your Downloads
+// folder as a .csv you can open in Excel/Sheets/pandas, no internet
+// or Apps Script needed.
+// ════════════════════════════════════════════════════
+function downloadCSV() {
+  if (!rows.length) { toast('No data to download', true); return; }
+  const chIds = CHS.map(c => c.id);
+  const headers = [
+    'Time(s)',
+    'F1_415nm','F2_445nm','F3_480nm','F4_515nm','F5_555nm',
+    'F6_590nm','F7_630nm','F8_680nm','Clear','NIR',
+    'p1(F6/F4)','p2(F6/F2)','p3(F7/F5)','p4(F6/F5)','p5(F8/F6)',
+    'p6(F7/F6)','p7(F6/CLR)','p8(F7/CLR)','p9((F6+F7)/CLR)','p10(F2/CLR)',
+    ...chIds.map(id => 'Abs_' + id),
+    ...chIds.map(id => 'Trans_' + id),
+    'Ref_Clear_I0'
+  ];
+  const refClearUsed = referenceBaseline ? referenceBaseline.CLR.toFixed(0) : '';
+
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    const base = [
+      r.time,
+      r.F1, r.F2, r.F3, r.F4, r.F5,
+      r.F6, r.F7, r.F8, r.CLR, r.NIR,
+      r.p1, r.p2, r.p3, r.p4, r.p5,
+      r.p6, r.p7, r.p8, r.p9, r.p10
+    ];
+    const abs   = chIds.map(id => (r['A_'+id] !== undefined) ? r['A_'+id].toFixed(4) : '');
+    const trans = chIds.map(id => (r['T_'+id] !== undefined) ? r['T_'+id].toFixed(4) : '');
+    lines.push(base.concat(abs, trans, [refClearUsed]).join(','));
+  });
+
+  const csv  = lines.join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const d     = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'AS7341_Data_' + stamp + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  toast('⬇ Downloaded CSV');
+  log('Downloaded ' + rows.length + ' rows as CSV', 'ok');
+}
+
+// ════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════
+
+// clearSessionData() — wipes all data from previous session.
+// Called automatically at start of every new measurement.
+// Also callable manually via the 🗑 button.
+// Does NOT touch referenceBaseline — see cmdStart() note above.
+function clearSessionData() {
+  rows = []; trend = [];
+  document.getElementById('tblBody').innerHTML    = '';
+  document.getElementById('rowsBadge').textContent = '0 readings';
+  document.getElementById('tblLbl').textContent   = '0 rows';
+  document.getElementById('timerVal').textContent = '0.0s';
+  document.getElementById('countdownLbl').textContent = '';
+  setBtn('btnSave', true); setBtn('mobSave', true);
+  setBtn('btnDownload', true); setBtn('mobDownload', true);
+  setBtn('btnSetRef', true); setBtn('mobSetRef', true);
+  CHS.forEach(c => {
+    const ne = document.getElementById('cn_'+c.id);
+    const be = document.getElementById('cb_'+c.id);
+    if (ne) ne.textContent = '—';
+    if (be) be.style.width = '0%';
+  });
+  RATIOS.forEach(([id]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+  document.getElementById('clearLive').textContent = '—';
+  updateCorrected(null);
+}
+
+function clearAll() {
+  if (rows.length && !confirm('Clear all data?')) return;
+  clearSessionData();
+  log('Data cleared manually', 'info');
+}
+
+function setBtn(id, disabled) {
+  const el = document.getElementById(id);
+  if (el) el.disabled = disabled;
+}
+
+function setStatus(cls, txt) {
+  document.getElementById('statusDot').className  = 'status-dot ' + cls;
+  document.getElementById('statusTxt').textContent = txt;
+  isMeasure = cls === 'measuring';
+}
+
+function setBusy(b) {
+  document.getElementById('led').className        = 'led' + (b ? ' busy' : '');
+  document.getElementById('connLbl').textContent  = b ? 'Connecting...' : 'Not connected';
+}
+
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  const d   = document.createElement('div');
+  d.className  = 'll ' + type;
+  d.textContent = '> ' + msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  while (box.children.length > 80) box.removeChild(box.firstChild);
+}
+
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast' + (err ? ' err' : '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function showPane(id, el) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t  => t.classList.remove('active'));
+  document.getElementById('pane-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'channels') setTimeout(drawChart, 50);
+}
+
+function onCategoryChange() {
+  const sel = document.getElementById('expCategorySelect').value;
+  const otherInput = document.getElementById('expCategoryOther');
+  if (sel === '__other__') {
+    otherInput.style.display = 'block';
+    otherInput.focus();
+  } else {
+    otherInput.style.display = 'none';
+    otherInput.value = '';
+  }
+}
+
+buildUI();
+</script>
+</body>
+</html>
