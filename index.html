@@ -355,6 +355,9 @@ tr:hover td{background:rgba(0,229,255,.03);}
     <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.8;">
       Category is added as the first column in every row.<br>Saves to Google Drive → SpectroSensor_Data folder.
     </div>
+    <div class="modal-row" style="margin-bottom:8px;">
+      <button class="btn btn-download" onclick="downloadCSV()">⬇ Save Locally (CSV)</button>
+    </div>
     <div class="modal-row">
       <button class="btn btn-ghost" onclick="closeSave()">Cancel</button>
       <button class="btn btn-save" id="doSaveBtn" onclick="doSave()">Save to Sheets</button>
@@ -368,7 +371,7 @@ tr:hover td{background:rgba(0,229,255,.03);}
 // ════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw80kprnY8EjpTrLXCk6dXweM8gs1gkcyCWUgRLbNuNydFN4KNuQo0pTug8X-Z4JGPkdg/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjxkhbywH27pX3rAeRddR-LQfdEvn7AtUdHhfs1PsVOoAIrRGGm7IeS6lvTrBhMqV7/exec';
 const BAUD       = 115200;
 const FULL_SCALE = 18000;
 const BT_SERVICE = '0000ffe0-0000-1000-8000-00805f9b34fb';
