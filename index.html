@@ -946,8 +946,20 @@ async function doSave() {
 function downloadCSV() {
   if (!rows.length) { toast('No data to download', true); return; }
   const chIds = CHS.map(c => c.id);
+
+  // Same category logic as doSave() — Save Locally and Save to Sheets now
+  // always agree on whatever's currently picked in the popup.
+  const selVal   = document.getElementById('expCategorySelect').value;
+  const category = (selVal === '__other__')
+    ? (document.getElementById('expCategoryOther').value.trim() || 'Other')
+    : (selVal || 'Uncategorized');
+  // Quoted/escaped since it's the one free-typed field (the "Other" box) —
+  // guards against a comma in a custom category breaking the CSV columns.
+  const categoryCsv = '"' + category.replace(/"/g, '""') + '"';
+
   const headers = [
     'Time(s)',
+    'Category',
     'F1_415nm','F2_445nm','F3_480nm','F4_515nm','F5_555nm',
     'F6_590nm','F7_630nm','F8_680nm','Clear','NIR',
     'p1(F6/F4)','p2(F6/F2)','p3(F7/F5)','p4(F6/F5)','p5(F8/F6)',
@@ -961,7 +973,7 @@ function downloadCSV() {
   const lines = [headers.join(',')];
   rows.forEach(r => {
     const base = [
-      r.time,
+      r.time, categoryCsv,
       r.F1, r.F2, r.F3, r.F4, r.F5,
       r.F6, r.F7, r.F8, r.CLR, r.NIR,
       r.p1, r.p2, r.p3, r.p4, r.p5,
